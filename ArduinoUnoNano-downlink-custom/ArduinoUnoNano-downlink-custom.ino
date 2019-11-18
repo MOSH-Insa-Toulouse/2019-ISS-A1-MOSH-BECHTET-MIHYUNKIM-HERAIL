@@ -43,6 +43,13 @@ SoftwareSerial mySerial(10, 11); // TX, RX
 //giving the software serial as port to use
 rn2xx3 myLora(mySerial);
 
+bool triggered = false;
+
+ISR(ANALOG_COMP_vect)
+  {
+  triggered = true;
+  }
+
 // the setup routine runs once when you press reset:
 void setup()
 {
@@ -61,7 +68,12 @@ void setup()
   myLora.tx("TTN Mapper on TTN Enschede node");
 
   led_off();
+
+  setupAcomp();
+  
   delay(2000);
+
+  
 }
 
 void initialize_radio()
@@ -107,14 +119,14 @@ void initialize_radio()
    const char *appEui = "70B3D57ED0025AF4";
   const char *appKey = "97D1E4ECE8E172261187351B747CBE4A";
 
-  join_result = myLora.initOTAA(appEui, appKey);
-
-  while(!join_result)
-  {
-    Serial.println("Unable to join. Are your keys correct, and do you have TTN coverage?");
-    delay(60000); //delay a minute before retry
-    join_result = myLora.init();
-  }
+//  join_result = myLora.initOTAA(appEui, appKey);
+//
+//  while(!join_result)
+//  {
+//    Serial.println("Unable to join. Are your keys correct, and do you have TTN coverage?");
+//    delay(60000); //delay a minute before retry
+//    join_result = myLora.init();
+//  }
   Serial.println("Successfully joined TTN");
 
     Serial.println(myLora.sendRawCommand("radio set sf sf7"));
@@ -125,43 +137,51 @@ String sensor_value;
 // the loop routine runs over and over again forever:
 void loop()
 {
-    led_on();
-
-    
-    Serial.print("TXing");
-    //myLora.txCnf/("!"); //one byte, blocking function
-
-    sensor_value = getGasSensorVoltage();
-    switch(myLora.txCnf(sensor_value)) //one byte, blocking function
-    {
-      case TX_FAIL:
-      {
-        Serial.println("TX unsuccessful or not acknowledged");
-        break;
-      }
-      case TX_SUCCESS:
-      {
-        Serial.println("TX successful and acknowledged");
-        Serial.print(myLora.getSNR());
-        Serial.print("\n");
-        break;
-      }
-      case TX_WITH_RX:
-      {
-        String received = myLora.getRx();
-        received = myLora.base16decode(received);
-        Serial.print("Received downlink: " + received);
-        Serial.print(myLora.getSNR());
-        break;
-      }
-      default:
-      {
-        Serial.println("Unknown response from TX function");
-      }
-    }
-
-    led_off();
-    delay(5000);
+  
+  if(triggered)
+  {
+    triggered = false;
+    Serial.println("Interrupt worked !");
+  }
+  Serial.println("loop");
+//    led_on();
+//
+//    
+//    Serial.print("TXing");
+//    //myLora.txCnf/("!"); //one byte, blocking function
+//
+//    sensor_value = getGasSensorVoltage();
+//    Serial.println(sensor_value);
+//    switch(myLora.txCnf(sensor_value)) //one byte, blocking function
+//    {
+//      case TX_FAIL:
+//      {
+//        Serial.println("TX unsuccessful or not acknowledged");
+//        break;
+//      }
+//      case TX_SUCCESS:
+//      {
+//        Serial.println("TX successful and acknowledged");
+//        Serial.print(myLora.getSNR());
+//        Serial.print("\n");
+//        break;
+//      }
+//      case TX_WITH_RX:
+//      {
+//        String received = myLora.getRx();
+//        received = myLora.base16decode(received);
+//        Serial.print("Received downlink: " + received);
+//        Serial.print(myLora.getSNR());
+//        break;
+//      }
+//      default:
+//      {
+//        Serial.println("Unknown response from TX function");
+//      }
+//    }
+//
+//    led_off();
+    delay(1000);
 }
 //
 //void loop() {
@@ -196,4 +216,21 @@ String getGasSensorVoltage()
   sensorValue = analogRead(A0);
   sensor_volt = sensorValue/1024*5.0;
   return String(sensor_volt);
+}
+
+void setupAcomp()
+{
+  ACSR =
+ (0<<ACD) |   // Analog Comparator: Enabled
+ (0<<ACBG) |   // Analog Comparator Bandgap Select: AIN0 is applied to the positive input
+ (0<<ACO) |   // Analog Comparator Output: Off
+ (1<<ACI) |   // Analog Comparator Interrupt Flag: Clear Pending Interrupt
+ (1<<ACIE) |   // Analog Comparator Interrupt: Enabled
+ (0<<ACIC) |   // Analog Comparator Input Capture: Disabled
+ (1<<ACIS1) | (1<ACIS0);   // Analog Comparator Interrupt Mode: Comparator Interrupt on Rising Output Edge
+//   ADCSRB = 0;           // (Disable) ACME: Analog Comparator Multiplexer Enable
+//  ACSR =  bit (ACI)     // (Clear) Analog Comparator Interrupt Flag
+//        | bit (ACIE)    // Analog Comparator Interrupt Enable
+//        | bit (ACIS1)  // ACIS1, ACIS0: Analog Comparator Interrupt Mode Select (trigger on falling edge)
+//        | bit (ACIS0);  // ACIS1, ACIS0: Analog Comparator Interrupt Mode Select (trigger on falling edge)
 }
