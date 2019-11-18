@@ -60,7 +60,6 @@ void setup()
 {
     //output LED pin
     pinMode(13, OUTPUT);
-    led_on();
 
     // Open serial communications and wait for port to open:
     Serial.begin(57600);  //serial port to computer
@@ -71,8 +70,6 @@ void setup()
 
     //transmit a startup message
     myLora.tx("TTN Mapper on TTN Enschede node");
-
-    led_off();
 
     //Setup the analog comparator
     setupAcomp();
@@ -180,7 +177,7 @@ float getGasSensorVoltage()
 
     sensorValue = analogRead(A0);
     sensor_volt = sensorValue / 1024 * 5.0;
-    sensor_volt;
+    return sensor_volt;
 }
 
 //Used to setup the register for the analog comparator
