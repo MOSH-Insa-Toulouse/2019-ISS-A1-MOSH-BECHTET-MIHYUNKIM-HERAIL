@@ -129,7 +129,7 @@ void initialize_radio()
     }
     Serial.println("Successfully joined TTN");
 
-    Serial.println(myLora.sendRawCommand("radio set sf sf7"));
+    // Serial.println(myLora.sendRawCommand("radio set sf sf7"));
 }
 
 String sensor_value;
