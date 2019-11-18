@@ -49,6 +49,7 @@ rn2xx3 myLora(mySerial);
 bool triggered = false;
 
 //This function handles the interrupt of the analog comparator
+//Should be as short as possible
 ISR(ANALOG_COMP_vect)
 {
     triggered = true;
