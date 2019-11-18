@@ -36,6 +36,7 @@
  */
 #include <rn2xx3.h>
 #include <SoftwareSerial.h>
+#include <avr/sleep.h>
 
 SoftwareSerial mySerial(10, 11); // TX, RX
 
@@ -43,145 +44,120 @@ SoftwareSerial mySerial(10, 11); // TX, RX
 //giving the software serial as port to use
 rn2xx3 myLora(mySerial);
 
+//Boolean value to hold the fact that
+//the analog comp was triggered
 bool triggered = false;
 
+//This function handles the interrupt of the analog comparator
 ISR(ANALOG_COMP_vect)
-  {
-  triggered = true;
-  }
+{
+    triggered = true;
+    //TODO: save value on trigger ?
+}
 
 // the setup routine runs once when you press reset:
 void setup()
 {
-  //output LED pin
-  pinMode(13, OUTPUT);
-  led_on();
+    //output LED pin
+    pinMode(13, OUTPUT);
+    led_on();
 
-  // Open serial communications and wait for port to open:
-  Serial.begin(57600); //serial port to computer
-  mySerial.begin(9600); //serial port to radio
-  Serial.println("Startup");
+    // Open serial communications and wait for port to open:
+    Serial.begin(57600);  //serial port to computer
+    mySerial.begin(9600); //serial port to radio
+    Serial.println("Startup");
 
-  initialize_radio();
+    initialize_radio();
 
-  //transmit a startup message
-  myLora.tx("TTN Mapper on TTN Enschede node");
+    //transmit a startup message
+    myLora.tx("TTN Mapper on TTN Enschede node");
 
-  led_off();
+    led_off();
 
-  setupAcomp();
-  
-  delay(2000);
+    //Setup the analog comparator
+    setupAcomp();
 
-  
+    delay(2000);
 }
 
 void initialize_radio()
 {
-  //reset rn2483
-  pinMode(12, OUTPUT);
-  digitalWrite(12, LOW);
-  delay(500);
-  digitalWrite(12, HIGH);
+    //reset rn2483
+    pinMode(12, OUTPUT);
+    digitalWrite(12, LOW);
+    delay(500);
+    digitalWrite(12, HIGH);
 
-  delay(100); //wait for the RN2xx3's startup message
-  mySerial.flush();
+    delay(100); //wait for the RN2xx3's startup message
+    mySerial.flush();
 
-  //Autobaud the rn2483 module to 9600. The default would otherwise be 57600.
-  myLora.autobaud();
+    //Autobaud the rn2483 module to 9600. The default would otherwise be 57600.
+    myLora.autobaud();
 
-  //check communication with radio
-  String hweui = myLora.hweui();
-  while(hweui.length() != 16)
-  {
-    Serial.println("Communication with RN2xx3 unsuccesful. Power cycle the board.");
-    Serial.println(hweui);
-    delay(10000);
-    hweui = myLora.hweui();
-  }
+    //check communication with radio
+    String hweui = myLora.hweui();
+    while (hweui.length() != 16)
+    {
+        Serial.println("Communication with RN2xx3 unsuccesful. Power cycle the board.");
+        Serial.println(hweui);
+        delay(10000);
+        hweui = myLora.hweui();
+    }
 
-  //print out the HWEUI so that we can register it via ttnctl
-  Serial.println("When using OTAA, register this DevEUI: ");
-  Serial.println(myLora.hweui());
-  Serial.println("RN2xx3 firmware version:");
-  Serial.println(myLora.sysver());
+    //print out the HWEUI so that we can register it via ttnctl
+    Serial.println("When using OTAA, register this DevEUI: ");
+    Serial.println(myLora.hweui());
+    Serial.println("RN2xx3 firmware version:");
+    Serial.println(myLora.sysver());
 
+    //configure your keys and join the network
+    Serial.println("Trying to join TTN");
+    bool join_result = false;
 
+    //ABP: initABP(String addr, String AppSKey, String NwkSKey);
+    //join_result = myLora.initABP("02017201", "8D7FFEF938589D95AAD928C2E2E7E48F", "AE17E567AECC8787F749A62F5541D522");
 
-  //configure your keys and join the network
-  Serial.println("Trying to join TTN");
-  bool join_result = false;
+    //OTAA: initOTAA(String AppEUI, String AppKey);
+    const char *appEui = "70B3D57ED0025AF4";
+    const char *appKey = "97D1E4ECE8E172261187351B747CBE4A";
 
-  //ABP: initABP(String addr, String AppSKey, String NwkSKey);
-  //join_result = myLora.initABP("02017201", "8D7FFEF938589D95AAD928C2E2E7E48F", "AE17E567AECC8787F749A62F5541D522");
+    join_result = myLora.initOTAA(appEui, appKey);
 
-  //OTAA: initOTAA(String AppEUI, String AppKey);
-   const char *appEui = "70B3D57ED0025AF4";
-  const char *appKey = "97D1E4ECE8E172261187351B747CBE4A";
-
-//  join_result = myLora.initOTAA(appEui, appKey);
-//
-//  while(!join_result)
-//  {
-//    Serial.println("Unable to join. Are your keys correct, and do you have TTN coverage?");
-//    delay(60000); //delay a minute before retry
-//    join_result = myLora.init();
-//  }
-  Serial.println("Successfully joined TTN");
+    while (!join_result)
+    {
+        Serial.println("Unable to join. Are your keys correct, and do you have TTN coverage?");
+        // delay(60000); //delay a minute before retry
+        delay(10000); //delay 10 second before retrying
+        join_result = myLora.init();
+    }
+    Serial.println("Successfully joined TTN");
 
     Serial.println(myLora.sendRawCommand("radio set sf sf7"));
-
 }
 
 String sensor_value;
 // the loop routine runs over and over again forever:
 void loop()
 {
-  
-  if(triggered)
-  {
-    triggered = false;
-    Serial.println("Interrupt worked !");
-  }
-  Serial.println("loop");
-//    led_on();
-//
-//    
-//    Serial.print("TXing");
-//    //myLora.txCnf/("!"); //one byte, blocking function
-//
-//    sensor_value = getGasSensorVoltage();
-//    Serial.println(sensor_value);
-//    switch(myLora.txCnf(sensor_value)) //one byte, blocking function
-//    {
-//      case TX_FAIL:
-//      {
-//        Serial.println("TX unsuccessful or not acknowledged");
-//        break;
-//      }
-//      case TX_SUCCESS:
-//      {
-//        Serial.println("TX successful and acknowledged");
-//        Serial.print(myLora.getSNR());
-//        Serial.print("\n");
-//        break;
-//      }
-//      case TX_WITH_RX:
-//      {
-//        String received = myLora.getRx();
-//        received = myLora.base16decode(received);
-//        Serial.print("Received downlink: " + received);
-//        Serial.print(myLora.getSNR());
-//        break;
-//      }
-//      default:
-//      {
-//        Serial.println("Unknown response from TX function");
-//      }
-//    }
-//
-//    led_off();
+
+    // Send data if sensor is triggered
+    if (triggered)
+    {
+        triggered = false;
+        Serial.println("Interrupt worked !");
+
+    //Get gas sensor data
+    // TODO Modify the code to get data when the interrupt is fired
+    sensor_value = String(getGasSensorVoltage());
+    Serial.println("Sensor value: " + sensor_value);
+    sendData(sensor_value);
+
+    }
     delay(1000);
+
+    // TODO test
+    // Puts the board to sleep, will return on interrupt
+    putBoardSleep();
 }
 //
 //void loop() {
@@ -197,40 +173,71 @@ void loop()
 //    delay(1000);
 //}
 
-
-void led_on()
+float getGasSensorVoltage()
 {
-  digitalWrite(13, 1);
+    float sensor_volt;
+    float sensorValue;
+
+    sensorValue = analogRead(A0);
+    sensor_volt = sensorValue / 1024 * 5.0;
+    sensor_volt;
 }
 
-void led_off()
-{
-  digitalWrite(13, 0);
-}
-
-String getGasSensorVoltage()
-{
-  float sensor_volt;
-  float sensorValue;
-
-  sensorValue = analogRead(A0);
-  sensor_volt = sensorValue/1024*5.0;
-  return String(sensor_volt);
-}
-
+//Used to setup the register for the analog comparator
+//Pins used:
+//  + AIN0: Ref voltage = pin D6
+//  + AIN1: Tested voltage = pin D7
 void setupAcomp()
 {
-  ACSR =
- (0<<ACD) |   // Analog Comparator: Enabled
- (0<<ACBG) |   // Analog Comparator Bandgap Select: AIN0 is applied to the positive input
- (0<<ACO) |   // Analog Comparator Output: Off
- (1<<ACI) |   // Analog Comparator Interrupt Flag: Clear Pending Interrupt
- (1<<ACIE) |   // Analog Comparator Interrupt: Enabled
- (0<<ACIC) |   // Analog Comparator Input Capture: Disabled
- (1<<ACIS1) | (1<ACIS0);   // Analog Comparator Interrupt Mode: Comparator Interrupt on Rising Output Edge
-//   ADCSRB = 0;           // (Disable) ACME: Analog Comparator Multiplexer Enable
-//  ACSR =  bit (ACI)     // (Clear) Analog Comparator Interrupt Flag
-//        | bit (ACIE)    // Analog Comparator Interrupt Enable
-//        | bit (ACIS1)  // ACIS1, ACIS0: Analog Comparator Interrupt Mode Select (trigger on falling edge)
-//        | bit (ACIS0);  // ACIS1, ACIS0: Analog Comparator Interrupt Mode Select (trigger on falling edge)
+    ACSR =
+        (0 << ACD) |                // Analog Comparator: Enabled
+        (0 << ACBG) |               // Analog Comparator Bandgap Select: AIN0 is applied to the positive input
+        (0 << ACO) |                // Analog Comparator Output: Off
+        (1 << ACI) |                // Analog Comparator Interrupt Flag: Clear Pending Interrupt
+        (1 << ACIE) |               // Analog Comparator Interrupt: Enabled
+        (0 << ACIC) |               // Analog Comparator Input Capture: Disabled
+        (1 << ACIS1) | (1 < ACIS0); // Analog Comparator Interrupt Mode: Comparator Interrupt on Rising Output Edge
+}
+
+//Sends data with LoRa
+//Handles the response from the chip
+void sendData(String data)
+{
+    switch (myLora.txCnf(data)) //blocking function
+    {
+    case TX_FAIL:
+    {
+        Serial.println("TX unsuccessful or not acknowledged");
+        break;
+    }
+    case TX_SUCCESS:
+    {
+        Serial.println("TX successful and acknowledged");
+        Serial.print(myLora.getSNR());
+        Serial.print("\n");
+        break;
+    }
+    case TX_WITH_RX:
+    {
+        String received = myLora.getRx();
+        received = myLora.base16decode(received);
+        Serial.print("Received downlink: " + received);
+        Serial.print(myLora.getSNR());
+        break;
+    }
+    default:
+    {
+        Serial.println("Unknown response from TX function");
+    }
+    }
+}
+
+//Puts the arduino to sleep
+//Returns when MCU gets awaken by interrupt
+void putBoardSleep()
+{
+    sleep_enable();
+    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+    // TODO check if other stuff are to be stopped
+    sleep_cpu();
 }

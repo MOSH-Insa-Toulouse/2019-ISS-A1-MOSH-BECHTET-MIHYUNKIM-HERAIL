@@ -1,0 +1,7 @@
+{
+    "board": "arduino:avr:uno",
+    "programmer": "AVRISP mkII",
+    "port": "/dev/ttyACM0",
+    "sketch": "ArduinoUnoNano-downlink-custom/ArduinoUnoNano-downlink-custom.ino",
+    "output": "../ArduinoOutput"
+}
