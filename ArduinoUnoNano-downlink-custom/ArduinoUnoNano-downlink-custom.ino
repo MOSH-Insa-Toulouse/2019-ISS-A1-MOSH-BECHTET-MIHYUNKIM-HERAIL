@@ -121,15 +121,18 @@ void initialize_radio()
 
 }
 
+String sensor_value;
 // the loop routine runs over and over again forever:
 void loop()
 {
     led_on();
 
+    
     Serial.print("TXing");
     //myLora.txCnf/("!"); //one byte, blocking function
 
-    switch(myLora.txCnf("!")) //one byte, blocking function
+    sensor_value = getGasSensorVoltage();
+    switch(myLora.txCnf(sensor_value)) //one byte, blocking function
     {
       case TX_FAIL:
       {
@@ -160,19 +163,19 @@ void loop()
     led_off();
     delay(5000);
 }
-
-void loop() {
-    float sensor_volt;
-    float sensorValue;
-
-    sensorValue = analogRead(A0);
-    sensor_volt = sensorValue/1024*5.0;
-
-    Serial.print("sensor_volt = ");
-    Serial.print(sensor_volt);
-    Serial.println("V");
-    delay(1000);
-}
+//
+//void loop() {
+//    float sensor_volt;
+//    float sensorValue;
+//
+//    sensorValue = analogRead(A0);
+//    sensor_volt = sensorValue/1024*5.0;
+//
+//    Serial.print("sensor_volt = ");
+//    Serial.print(sensor_volt);
+//    Serial.println("V");
+//    delay(1000);
+//}
 
 
 void led_on()
@@ -183,4 +186,14 @@ void led_on()
 void led_off()
 {
   digitalWrite(13, 0);
+}
+
+String getGasSensorVoltage()
+{
+  float sensor_volt;
+  float sensorValue;
+
+  sensorValue = analogRead(A0);
+  sensor_volt = sensorValue/1024*5.0;
+  return String(sensor_volt);
 }
