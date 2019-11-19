@@ -5,6 +5,7 @@
             "includePath": [
                 "/home/philippe/arduino-1.8.10/tools/**",
                 "/home/philippe/arduino-1.8.10/hardware/arduino/avr/**",
+                "/home/philippe/arduino-1.8.10/hardware/tools/avr/avr/include/**",
                 "/home/philippe/Arduino/libraries/**"
             ],
             "forcedInclude": [

@@ -50,9 +50,10 @@ bool triggered = false;
 
 //This function handles the interrupt of the analog comparator
 //Should be as short as possible
-ISR(ANALOG_COMP_vect)
+void gasSensorISR()
 {
-    triggered = true;
+    if(digitalRead(2) == HIGH)   
+        triggered = true;
     //TODO: save value on trigger ?
 }
 
@@ -75,7 +76,7 @@ void setup()
     //Setup the analog comparator
     setupAcomp();
 
-    delay(2000);
+    delay(1000);
 }
 
 void initialize_radio()
@@ -134,11 +135,19 @@ void initialize_radio()
     //  Serial.println(myLora.sendRawCommand("radio set sf sf7"));
 }
 
+/****************************
+ * Variables for the main loop 
+ ****************************/
 String sensor_value;
+
+/****************************
+ * Main Loop
+ ****************************/
 // the loop routine runs over and over again forever:
 void loop()
 {
 
+    Serial.println("Loop beg");
     // Send data if sensor is triggered
     if (triggered)
     {
@@ -151,6 +160,7 @@ void loop()
         Serial.println("Sensor value: " + sensor_value);
         sendData(sensor_value);
     }
+    Serial.println("Will go to sleep...");
     delay(1000);
 
     // TODO test
@@ -174,14 +184,17 @@ float getGasSensorVoltage()
 //  + AIN1: Tested voltage = pin D7
 void setupAcomp()
 {
-    ACSR =
-        (0 << ACD)                    // Analog Comparator: Enabled
-        | (0 << ACBG)                 // Analog Comparator Bandgap Select: AIN0 is applied to the positive input
-        | (0 << ACO)                  // Analog Comparator Output: Off
-        | (1 << ACI)                  // Analog Comparator Interrupt Flag: Clear Pending Interrupt
-        | (1 << ACIE)                 // Analog Comparator Interrupt: Enabled
-        | (0 << ACIC)                 // Analog Comparator Input Capture: Disabled
-        | (1 << ACIS1) | (1 < ACIS0); // Analog Comparator Interrupt Mode: Comparator Interrupt on Rising Output Edge
+    pinMode(2, INPUT);
+    attachInterrupt(digitalPinToInterrupt(2), gasSensorISR, CHANGE);
+
+    // ACSR =
+    //     (0 << ACD) |                // Analog Comparator: Enabled
+    //     (0 << ACBG) |               // Analog Comparator Bandgap Select: AIN0 is applied to the positive input
+    //     (0 << ACO) |                // Analog Comparator Output: Off
+    //     (1 << ACI) |                // Analog Comparator Interrupt Flag: Clear Pending Interrupt
+    //     (1 << ACIE) |               // Analog Comparator Interrupt: Enabled
+    //     (0 << ACIC) |               // Analog Comparator Input Capture: Disabled
+    //     (1 << ACIS1) | (1 << ACIS0); // Analog Comparator Interrupt Mode: Comparator Interrupt on Rising Output Edge
 }
 
 //Sends data with LoRa
