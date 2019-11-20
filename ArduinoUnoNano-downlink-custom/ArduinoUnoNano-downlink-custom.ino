@@ -185,7 +185,7 @@ float getGasSensorVoltage()
 void setupAcomp()
 {
     pinMode(2, INPUT);
-    attachInterrupt(digitalPinToInterrupt(2), gasSensorISR, CHANGE);
+    attachInterrupt(digitalPinToInterrupt(2), gasSensorISR, RISING);
 
     // ACSR =
     //     (0 << ACD) |                // Analog Comparator: Enabled
