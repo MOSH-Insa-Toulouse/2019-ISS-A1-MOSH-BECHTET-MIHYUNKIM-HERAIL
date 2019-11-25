@@ -44,16 +44,24 @@ SoftwareSerial mySerial(10, 11); // TX, RX
 //giving the software serial as port to use
 rn2xx3 myLora(mySerial);
 
+/******************
+ * ISR Var declaration
+ * ****************/
+
 //Boolean value to hold the fact that
 //the analog comp was triggered
-bool triggered = false;
+volatile bool triggered = false;
+volatile float gasSensorValue;
 
 //This function handles the interrupt of the analog comparator
 //Should be as short as possible
 void gasSensorISR()
 {
-    if(digitalRead(2) == HIGH)   
+    if(digitalRead(2) == HIGH)  
+    { 
         triggered = true;
+        gasSensorValue = getGasSensorVoltage();
+    }
     //TODO: save value on trigger ?
 }
 
@@ -101,6 +109,7 @@ void initialize_radio()
         Serial.println(hweui);
         delay(10000);
         hweui = myLora.hweui();
+
     }
 
     //print out the HWEUI so that we can register it via ttnctl
@@ -132,7 +141,7 @@ void initialize_radio()
     Serial.println("Successfully joined TTN");
 
     //Set Lora params, seems to have no effect
-    //  Serial.println(myLora.sendRawCommand("radio set sf sf7"));
+     Serial.println(myLora.sendRawCommand("radio set sf sf12"));
 }
 
 /****************************
@@ -156,12 +165,12 @@ void loop()
 
         //Get gas sensor data
         // TODO Modify the code to get data when the interrupt is fired
-        sensor_value = String(getGasSensorVoltage());
+        sensor_value = String(gasSensorValue);
         Serial.println("Sensor value: " + sensor_value);
         sendData(sensor_value);
     }
     Serial.println("Will go to sleep...");
-    delay(1000);
+    // delay(1000);
 
     // TODO test
     // Puts the board to sleep, will return on interrupt
@@ -187,6 +196,10 @@ void setupAcomp()
     pinMode(2, INPUT);
     attachInterrupt(digitalPinToInterrupt(2), gasSensorISR, RISING);
 
+    /**
+     * Use this to use the  analog comparator instead of an external Schmidt trigger
+     * This will not be able to wake the MCU from power down mode
+     */
     // ACSR =
     //     (0 << ACD) |                // Analog Comparator: Enabled
     //     (0 << ACBG) |               // Analog Comparator Bandgap Select: AIN0 is applied to the positive input
