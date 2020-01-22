@@ -1,0 +1,4 @@
+(sym_lib_table
+  (lib (name Lib_GasSensor_Symbol)(type Legacy)(uri ${KIPRJMOD}/Lib_GasSensor_Symbol.lib)(options "")(descr ""))
+  (lib (name gas_sensor)(type Legacy)(uri ${KIPRJMOD}/gas_sensor.lib)(options "")(descr ""))
+)

@@ -1,0 +1,21 @@
+EESchema-LIBRARY Version 2.4
+#encoding utf-8
+#
+# Gas_Sensor
+#
+DEF Gas_Sensor U 0 40 Y Y 1 F N
+F0 "U" 550 -150 50 H V C CNN
+F1 "Gas_Sensor" 250 -150 50 H V C CNN
+F2 "" 550 -150 50 H I C CNN
+F3 "" 550 -150 50 H I C CNN
+DRAW
+S 50 -200 550 -1000 0 1 0 f
+S 450 -1000 500 -1000 0 1 0 N
+X VCC 1 550 -300 100 R 50 50 1 1 I
+X GND 2 550 -500 100 R 50 50 1 1 O
+X SIG 3 550 -700 100 R 50 50 1 1 I
+X NC 4 550 -900 100 R 50 50 1 1 O
+ENDDRAW
+ENDDEF
+#
+#End Library
